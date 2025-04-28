@@ -6,6 +6,8 @@ This project implements a vectorized 3D Delay-and-Sum beamformer utilizing PyTor
 
 This work uses PyMust as a reference for generating simulation data and parameter inputs. 
 
+https://github.com/creatis-ULTIM/PyMUST
+
 ## Development Process
 
 This beamformer was developed and debugged iteratively. Initially, an issue where the beamformer only processed a single Z-line was identified and fixed by correctly accumulating results from Z-chunks. Subsequently, efforts focused on optimizing performance and addressing VRAM limitations. Internal XY chunking was implemented to process the reconstruction grid in smaller spatial blocks, which improved throughput and helped manage VRAM when processing batches of volumes.
