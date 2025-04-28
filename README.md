@@ -94,22 +94,7 @@ To run the example:
 python GPU_volumetric_beamforming/vectorized_beamformer3D.py
 ```
 
-By default, profiling is disabled. To enable performance profiling using `torch.profiler` and generate logs for TensorBoard, set the `enable_profiling` flag to `True` within the `if __name__ == '__main__':` block in `vectorized_beamformer3D.py`:
 
-```python
-if __name__ == '__main__':
-    # ... other code ...
-    enable_profiling = True # Set to True to enable profiling
-    # ... rest of the example usage ...
-```
-
-When `enable_profiling` is `True`, running the script will generate profiling data in the `./log` directory. You can then visualize this data using TensorBoard:
-
-```bash
-tensorboard --logdir ./log
-```
-
-Open the provided URL (usually `http://localhost:6006/`) in your web browser and navigate to the "Profile" tab to analyze the performance characteristics.
 
 ## Packaging for GitHub
 
@@ -127,8 +112,6 @@ Create a `requirements.txt` file with the following content:
 numpy
 torch
 pymust
-tensorboard
-tensorboard-plugin-profile
 ```
 
 You can then initialize a Git repository, add these files, and push them to your GitHub repository.
