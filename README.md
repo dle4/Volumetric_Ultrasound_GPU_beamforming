@@ -8,10 +8,6 @@ This project implements a vectorized 3D Delay-and-Sum beamformer utilizing PyTor
 
 This beamformer was developed and debugged iteratively. Initially, an issue where the beamformer only processed a single Z-line was identified and fixed by correctly accumulating results from Z-chunks. Subsequently, efforts focused on optimizing performance and addressing VRAM limitations. Internal XY chunking was implemented to process the reconstruction grid in smaller spatial blocks, which improved throughput and helped manage VRAM when processing batches of volumes.
 
-## Accuracy Note
-
-Currently, there is a known discrepancy between the output of this vectorized GPU beamformer and the reference output from PyMUST's `dasmtx3` (using `np.allclose` with specified tolerances). This indicates a potential issue in the beamforming calculations themselves (e.g., differences in delay calculation, interpolation, or phase rotation logic) that still needs further investigation and correction to ensure the output is accurate.
-
 ## Required Packages
 
 To run this beamformer and the associated test script, you need the following Python packages:
