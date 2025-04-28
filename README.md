@@ -4,6 +4,8 @@
 
 This project implements a vectorized 3D Delay-and-Sum beamformer utilizing PyTorch for execution on the GPU. It is designed to process I/Q data and reconstruct 3D volumes, with capabilities for chunking along the Z, X, and Y axes to manage memory usage and improve performance.
 
+This work uses PyMust as a reference for generating simulation data and parameter inputs. 
+
 ## Development Process
 
 This beamformer was developed and debugged iteratively. Initially, an issue where the beamformer only processed a single Z-line was identified and fixed by correctly accumulating results from Z-chunks. Subsequently, efforts focused on optimizing performance and addressing VRAM limitations. Internal XY chunking was implemented to process the reconstruction grid in smaller spatial blocks, which improved throughput and helped manage VRAM when processing batches of volumes.
