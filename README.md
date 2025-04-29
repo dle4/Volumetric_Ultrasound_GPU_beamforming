@@ -136,30 +136,6 @@ This script will:
 
 The original `vectorized_beamformer3D.py` script also includes an example usage block (`if __name__ == '__main__':`) that demonstrates how to load data, run the beamformer, and measure its execution time for a single volume.
 
-## Packaging for GitHub
-
-To package this project for GitHub, ensure you have the following files and directories in your repository:
-
-*   `vectorized_beamformer3D.py`
-*   `vectorized_beamformer3D_ext.py`
-*   `run_comparison.py`
-*   `README.md` (this file)
-*   `setup.py` (for building the C++ extension)
-*   The C++ and CUDA source files for the extension (e.g., in a `fused_kernel_ext` directory).
-*   `requirements.txt` (listing required packages)
-*   Any necessary data files (e.g., in a `simulated_data` directory, as used in the test script).
-*   The compiled C++ extension module (e.g., `fused_beamform_ext.so` or `fused_beamform_ext.pyd`) - note that users will typically need to build this themselves based on their system.
-
-Create a `requirements.txt` file with the following content:
-
-```
-numpy
-torch
-pymust
-matplotlib
-```
-
-You can then initialize a Git repository, add these files, and push them to your GitHub repository.
 
 ## Future Work
 
