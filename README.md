@@ -31,14 +31,13 @@ To run these beamformers and the associated scripts, you need the following Pyth
 *   `torch` (with CUDA support for GPU execution)
 *   `pymust` (used in the example/test scripts for data loading and demodulation)
 *   `matplotlib` (for visualization in the comparison script)
-*   `tensorboard` and `tensorboard-plugin-profile` (optional, for performance profiling)
 
 Additionally, the fused beamformer (`vectorized_beamformer3D_ext.py`) requires a compiled PyTorch C++ extension (`fused_beamform_ext`).
 
 You can install most of these packages using pip:
 
 ```bash
-pip install numpy torch pymust matplotlib tensorboard tensorboard-plugin-profile
+pip install numpy torch pymust matplotlib
 ```
 
 *(Note: Installing PyTorch with CUDA support may require specific instructions based on your system and CUDA version. Refer to the official PyTorch documentation for details.)*
@@ -126,23 +125,6 @@ This script will:
 
 The original `vectorized_beamformer3D.py` script also includes an example usage block (`if __name__ == '__main__':`) that demonstrates how to load data, run the beamformer, and measure its execution time for a single volume.
 
-By default, profiling is disabled. To enable performance profiling using `torch.profiler` and generate logs for TensorBoard, set the `enable_profiling` flag to `True` within the relevant `if __name__ == '__main__':` block in either `vectorized_beamformer3D.py` or `vectorized_beamformer3D_ext.py`:
-
-```python
-if __name__ == '__main__':
-    # ... other code ...
-    enable_profiling = True # Set to True to enable profiling
-    # ... rest of the example usage ...
-```
-
-When `enable_profiling` is `True`, running the script will generate profiling data in the `./log` directory. You can then visualize this data using TensorBoard:
-
-```bash
-tensorboard --logdir ./log
-```
-
-Open the provided URL (usually `http://localhost:6006/`) in your web browser and navigate to the "Profile" tab to analyze the performance characteristics.
-
 ## Packaging for GitHub
 
 To package this project for GitHub, ensure you have the following files and directories in your repository:
@@ -164,8 +146,6 @@ numpy
 torch
 pymust
 matplotlib
-tensorboard
-tensorboard-plugin-profile
 ```
 
 You can then initialize a Git repository, add these files, and push them to your GitHub repository.
