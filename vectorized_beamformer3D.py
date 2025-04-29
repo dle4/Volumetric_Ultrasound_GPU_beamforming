@@ -341,7 +341,7 @@ if __name__ == '__main__':
                  bIQ3_vec_tensor = vectorized_beamform(
                     IQ3_tensor, xi_tensor, yi_tensor, zi_tensor, txdel3_tensor, element_pos_tensor,
                     fs, fc, num_elements, c=speed_of_sound, device=device
-                )
+                 )
 
 
             # Existing timing code

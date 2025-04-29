@@ -2,54 +2,79 @@
 
 ## Overview
 
-This project implements a vectorized 3D Delay-and-Sum beamformer utilizing PyTorch for execution on the GPU. It is designed to process I/Q data and reconstruct 3D volumes, with capabilities for chunking along the Z, X, and Y axes to manage memory usage and improve performance.
-
-This work uses PyMust as a reference for generating simulation data and parameter inputs. 
-
-https://github.com/creatis-ULTIM/PyMUST
+This project implements vectorized 3D Delay-and-Sum beamformers utilizing PyTorch for execution on the GPU. It is designed to process I/Q data and reconstruct 3D volumes, with capabilities for chunking along the Z, X, and Y axes to manage memory usage and improve performance. Two main implementations are provided: a pure PyTorch/JIT version (`vectorized_beamformer3D.py`) and a version leveraging a fused CUDA kernel implemented as a PyTorch C++ Extension (`vectorized_beamformer3D_ext.py`).
 
 ## Development Process
 
-This beamformer was developed and debugged iteratively. Initially, an issue where the beamformer only processed a single Z-line was identified and fixed by correctly accumulating results from Z-chunks. Subsequently, efforts focused on optimizing performance and addressing VRAM limitations. Internal XY chunking was implemented to process the reconstruction grid in smaller spatial blocks, which improved throughput and helped manage VRAM when processing batches of volumes.
+This beamformer was developed and debugged iteratively. Initially, an issue where the beamformer only processed a single Z-line was identified and fixed by correctly accumulating results from Z-chunks. Subsequently, efforts focused on optimizing performance and addressing VRAM limitations. Internal XY chunking was implemented to process the reconstruction grid in smaller spatial blocks, which improved throughput and helped manage VRAM when processing batches of volumes. More recently, a fused CUDA kernel was developed and integrated via a PyTorch C++ extension to further enhance performance by reducing kernel launch overhead and improving data locality.
 
-## Performance Optimization
+## Performance Optimization and Comparison
 
 Significant effort has been made to optimize the performance of the beamformer on the GPU. Key optimizations include:
 
-*   **Kernel Fusion with `torch.jit.script`:** The core computation logic within each processing chunk has been compiled using `torch.jit.script`. This technique fuses multiple PyTorch operations into fewer, larger CUDA kernels, reducing kernel launch overhead and improving data locality.
-*   **Optimal Chunking Strategy:** Through systematic benchmarking, optimal chunk sizes for processing the volumetric grid have been identified for the target hardware (NVIDIA RTX 4060 Ti) and data dimensions (IQ: 560x1024, Grid: 64x64x128). The optimal chunk sizes found are **X=8, Y=16, Z=8**.
+*   **Kernel Fusion with `torch.jit.script` (Original Implementation):** The core computation logic within each processing chunk in the original PyTorch implementation is compiled using `torch.jit.script`. This technique fuses multiple PyTorch operations into fewer, larger CUDA kernels, reducing kernel launch overhead and improving data locality.
+*   **Fused CUDA Kernel (C++ Extension Implementation):** The `vectorized_beamformer3D_ext.py` implementation utilizes a custom fused CUDA kernel implemented in C++ and exposed to Python via a PyTorch extension. This approach allows for fine-grained control over memory access and computation, leading to potentially higher performance compared to the JIT-compiled PyTorch code.
+*   **Optimal Chunking Strategy:** Through systematic benchmarking, optimal chunk sizes for processing the volumetric grid have been identified for the target hardware (NVIDIA RTX 4060 Ti) and data dimensions (IQ: 560x1024, Grid: 64x64x128). The optimal chunk sizes found are **X=8, Y=16, Z=8**. These chunk sizes are used in both implementations for a fair comparison.
 
-These optimizations have resulted in a significant speedup compared to the initial implementation. The beamforming time for a single volume on the NVIDIA RTX 4060 Ti with optimal chunking and JIT compilation is approximately **0.3090 seconds**, compared to a baseline of 1.4683 seconds without these optimizations.
+A comparison script (`run_comparison.py`) was created to evaluate the performance of the two implementations using 1000 stacked IQ volumes processed in batches of 10. The results on an NVIDIA RTX 4060 Ti are as follows:
 
-Automatic mixed precision (`torch.cuda.amp.autocast`) was also explored but did not yield a performance improvement in initial tests for this specific workload.
+*   **Original PyTorch JIT Beamformer:** 3.84 volumes/second
+*   **Fused C++ Extension Beamformer:** 5.71 volumes/second
+
+The Fused C++ Extension implementation is approximately **1.49x faster** than the Original PyTorch JIT implementation for this specific test case.
 
 ## Required Packages
 
-To run this beamformer and the associated test script, you need the following Python packages:
+To run these beamformers and the associated scripts, you need the following Python packages:
 
 *   `numpy`
 *   `torch` (with CUDA support for GPU execution)
 *   `pymust` (used in the example/test scripts for data loading and demodulation)
-*   `tensorboard` and `tensorboard-plugin-profile` (for performance profiling)
+*   `matplotlib` (for visualization in the comparison script)
+*   `tensorboard` and `tensorboard-plugin-profile` (optional, for performance profiling)
 
-You can install these packages using pip:
+Additionally, the fused beamformer (`vectorized_beamformer3D_ext.py`) requires a compiled PyTorch C++ extension (`fused_beamform_ext`).
+
+You can install most of these packages using pip:
 
 ```bash
-pip install numpy torch pymust tensorboard tensorboard-plugin-profile
+pip install numpy torch pymust matplotlib tensorboard tensorboard-plugin-profile
 ```
 
 *(Note: Installing PyTorch with CUDA support may require specific instructions based on your system and CUDA version. Refer to the official PyTorch documentation for details.)*
 
+## Building the C++ Extension
+
+The `vectorized_beamformer3D_ext.py` beamformer relies on a custom fused CUDA kernel implemented in C++ and exposed to Python as a PyTorch extension. Before using `vectorized_beamformer3D_ext.py`, you must compile and build this extension.
+
+Ensure you have a compatible C++ compiler (like g++ or MSVC) and the NVIDIA CUDA Toolkit installed and configured correctly for your system and PyTorch installation.
+
+Navigate to the `GPU_volumetric_beamforming` directory in your terminal and run the `setup.py` script using the following command:
+
+```bash
+python setup.py install
+```
+
+or, for development mode (which symlinks the build directory to your site-packages, allowing for easier iteration on the C++ code without repeated installs):
+
+```bash
+python setup.py develop
+```
+
+This command will compile the C++ and CUDA source files and build the `fused_beamform_ext` Python module. If the compilation is successful, you should be able to import `fused_beamform_ext` in your Python scripts.
+
 ## Usage
 
-The core beamforming logic is implemented in the `vectorized_beamform` function in `vectorized_beamformer3D.py`.
+The core beamforming logic is implemented in the `vectorized_beamform` function in `vectorized_beamformer3D.py` and the `vectorized_beamform_ext` function in `vectorized_beamformer3D_ext.py`.
+
+Both functions have similar signatures:
 
 ```python
 def vectorized_beamform(iq_data: torch.Tensor, xi: torch.Tensor, yi: torch.Tensor, zi: torch.Tensor, txdel: torch.Tensor, element_pos: torch.Tensor, fs: float, fc: float, num_elements: int, c: float = 1540.0, device: str = 'cuda', z_chunk_size: int = 8, x_chunk_size: int = 8, y_chunk_size: int = 16):
     """
     Performs vectorized Delay-and-Sum beamforming on I/Q data using PyTorch,
     with chunking along the Z-axis and optionally along X and Y axes to manage memory.
-    Calls a JIT-scripted function for chunk processing.
+    Calls a JIT-scripted function for chunk processing (original) or a fused CUDA kernel (extension).
     Accepts PyTorch Tensors as input.
 
     Args:
@@ -73,38 +98,64 @@ def vectorized_beamform(iq_data: torch.Tensor, xi: torch.Tensor, yi: torch.Tenso
         torch.Tensor: Beamformed I/Q data. Shape: (batch_size, Nx, Ny, Nz) or (Nx, Ny, Nz)
                                     Returns PyTorch Tensor on the specified device.
     """
-    # ... function implementation details are in vectorized_beamformer3D.py
-    pass # This is a placeholder for the actual function code in the .py file
+    # The actual function implementation details are in vectorized_beamformer3D.py and vectorized_beamformer3D_ext.py
+    pass
 
 ```
 
 Key parameters for performance and memory management include:
 
 *   `device`: Specifies the device for computation ('cpu' or 'cuda').
-*   `z_chunk_size`: Number of Z-slices processed in each chunk along the Z-axis (defaulting to 8 for optimal performance).
-*   `x_chunk_size`, `y_chunk_size`: Number of X and Y points processed in each chunk within a Z-slice (defaulting to 8 and 16 respectively for optimal performance).
+*   `z_chunk_size`: Number of Z-slices processed in each chunk along the Z-axis.
+*   `x_chunk_size`, `y_chunk_size`: Number of X and Y points processed in each chunk within a Z-slice.
 
 ## Testing and Throughput Measurement
 
-The `vectorized_beamformer3D.py` script includes an example usage block (`if __name__ == '__main__':`) that demonstrates how to load data, run the beamformer, and measure its execution time.
+The `run_comparison.py` script is provided to perform both visual and throughput comparisons between the two beamformer implementations.
 
-To run the example:
+To run the comparison:
 
 ```bash
-python GPU_volumetric_beamforming/vectorized_beamformer3D.py
+python GPU_volumetric_beamforming/run_comparison.py
 ```
 
+This script will:
+*   Load necessary data from the `simulated_data/` directory.
+*   Generate visual comparison plots of the center X, Y, and Z slices for a single volume, saved to the `example_outputs/` directory.
+*   Measure and print the throughput (volumes per second) for both beamformers processing 1000 stacked IQ volumes.
 
+The original `vectorized_beamformer3D.py` script also includes an example usage block (`if __name__ == '__main__':`) that demonstrates how to load data, run the beamformer, and measure its execution time for a single volume.
+
+By default, profiling is disabled. To enable performance profiling using `torch.profiler` and generate logs for TensorBoard, set the `enable_profiling` flag to `True` within the relevant `if __name__ == '__main__':` block in either `vectorized_beamformer3D.py` or `vectorized_beamformer3D_ext.py`:
+
+```python
+if __name__ == '__main__':
+    # ... other code ...
+    enable_profiling = True # Set to True to enable profiling
+    # ... rest of the example usage ...
+```
+
+When `enable_profiling` is `True`, running the script will generate profiling data in the `./log` directory. You can then visualize this data using TensorBoard:
+
+```bash
+tensorboard --logdir ./log
+```
+
+Open the provided URL (usually `http://localhost:6006/`) in your web browser and navigate to the "Profile" tab to analyze the performance characteristics.
 
 ## Packaging for GitHub
 
-To package this project for GitHub, ensure you have the following files in your repository:
+To package this project for GitHub, ensure you have the following files and directories in your repository:
 
 *   `vectorized_beamformer3D.py`
-*   `gpu_streaming_throughput_test.py`
+*   `vectorized_beamformer3D_ext.py`
+*   `run_comparison.py`
 *   `README.md` (this file)
+*   `setup.py` (for building the C++ extension)
+*   The C++ and CUDA source files for the extension (e.g., in a `fused_kernel_ext` directory).
 *   `requirements.txt` (listing required packages)
 *   Any necessary data files (e.g., in a `simulated_data` directory, as used in the test script).
+*   The compiled C++ extension module (e.g., `fused_beamform_ext.so` or `fused_beamform_ext.pyd`) - note that users will typically need to build this themselves based on their system.
 
 Create a `requirements.txt` file with the following content:
 
@@ -112,12 +163,16 @@ Create a `requirements.txt` file with the following content:
 numpy
 torch
 pymust
+matplotlib
+tensorboard
+tensorboard-plugin-profile
 ```
 
 You can then initialize a Git repository, add these files, and push them to your GitHub repository.
 
 ## Future Work
 
-*   Further investigate potential numerical differences between this implementation and other beamforming methods if accuracy requirements are stricter.
-*   Explore further performance optimizations, such as manual mixed precision for specific kernels or custom CUDA kernels, if even greater speedup is required.
+*   Further investigate potential numerical differences between the two implementations if accuracy requirements is stricter.
+*   Explore further performance optimizations, such as manual mixed precision for specific kernels or alternative CUDA kernel implementations.
 *   Add more comprehensive unit tests.
+*   Improve the C++ extension build process documentation.
