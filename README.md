@@ -62,6 +62,17 @@ python setup.py develop
 
 This command will compile the C++ and CUDA source files and build the `fused_beamform_ext` Python module. If the compilation is successful, you should be able to import `fused_beamform_ext` in your Python scripts.
 
+## PyMUST Conventions
+
+This project aims to align with the data conventions used in the PyMUST toolbox where applicable. Specifically:
+
+*   **IQ Data Format:** The input IQ data is expected to be in a format compatible with PyMUST's output, typically with dimensions corresponding to (number of samples, number of elements) or (batch size, number of samples, number of elements).
+*   **Grid Coordinates:** The beamforming grid coordinates (`xi`, `yi`, `zi`) are structured similarly to how they might be defined or used within PyMUST for 3D reconstruction.
+*   **Element Positions:** Transducer element positions (`element_pos`) are expected in a format consistent with PyMUST's representation, typically (2, number of elements) for 2D coordinates.
+*   **Transmit Delays:** Transmit delays (`txdel`) are handled in a manner consistent with PyMUST's approach for plane wave or similar transmit schemes.
+
+This alignment facilitates easier integration and comparison with workflows or data generated using the PyMUST toolbox.
+
 ## Usage
 
 The core beamforming logic is implemented in the `vectorized_beamform` function in `vectorized_beamformer3D.py` and the `vectorized_beamform_ext` function in `vectorized_beamformer3D_ext.py`.
